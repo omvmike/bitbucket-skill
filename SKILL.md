@@ -30,12 +30,12 @@ If `bb --whoami` returns exit code 2 with "no .bb file found", guide the user:
    `https://id.atlassian.com/manage-profile/security/api-tokens?autofillToken=&appId=bitbucket`
 
    Tick these scopes (read-only profile — covers everything except `bb pr create`):
-   - `read:me`
+   - `read:user:bitbucket` *(required for `--whoami`)*
    - `read:repository:bitbucket`
    - `read:pullrequest:bitbucket`
    - `read:pipeline:bitbucket`
 
-   Also tick `write:pullrequest:bitbucket` if the user wants PR creation.
+   Also tick `write:pullrequest:bitbucket` for `bb pr create`, `bb pr comment add`, or `bb pr comment edit`.
 
 2. At the repo root:
    ```sh

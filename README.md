@@ -62,12 +62,12 @@ Node 18+ (uses native `fetch`, `node:fs`, `node:child_process`). No npm install 
 
    On that page, tick these scopes (read-only profile — covers everything except `bb pr create`):
 
-   - `read:me`
+   - `read:user:bitbucket` *(required for `--whoami`; also surfaces embedded user display names)*
    - `read:repository:bitbucket`
    - `read:pullrequest:bitbucket`
    - `read:pipeline:bitbucket`
 
-   Also tick `write:pullrequest:bitbucket` if you want `bb pr create`.
+   Also tick `write:pullrequest:bitbucket` for `bb pr create`, `pr comment add`, or `pr comment edit`.
 
 2. Save credentials at the project root:
 
@@ -180,7 +180,7 @@ The skill requests the minimum scopes needed for each operation. Generated token
 
 | Scope | Justification |
 |---|---|
-| `read:me` | `--whoami` (calls `GET /user`) |
+| `read:user:bitbucket` | `--whoami` (calls `GET /2.0/user`) — Bitbucket rejects this endpoint without it. Also surfaces embedded user `display_name` fields in PR/pipeline responses. |
 | `read:repository:bitbucket` | All `/repositories/{w}/{s}/...` paths require this |
 | `read:pullrequest:bitbucket` | `pr list`, `pr get`, `pr diff`, `pr activity`, `pr comments` |
 | `read:pipeline:bitbucket` | `pipeline list`, `pipeline get`, `pipeline steps`, `pipeline log` |
@@ -199,7 +199,7 @@ The skill requests the minimum scopes needed for each operation. Generated token
 - `read:project:bitbucket`, `read:workspace:bitbucket` — the skill doesn't query project or workspace resources directly
 - `read:gpg-key`, `read:ssh-key`, `read:webhook`, `read:wiki`, `read:snippet`, `read:issue`, `read:runner`, `read:test`, `read:package`, `read:permission` — none of these resources are touched
 - `manage:org` — irrelevant
-- `read:account`, `read:user:bitbucket` — embedded user display names (PR author, reviewers, pipeline creator) are typically returned with the parent resource scope. If names render as `?` in your output, regenerate with `read:user:bitbucket` added.
+- `read:account`, `read:me` — these are legacy classic-token scopes. Atlassian's modern scoped API tokens enforce `read:user:bitbucket` instead (it's in the recommended profile above), so the legacy ones are inert here.
 
 ## License
 
