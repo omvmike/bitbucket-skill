@@ -131,11 +131,11 @@ function ensureAuth(target, hints) {
         `1. Create an Atlassian API token at:\n` +
         `   ${TOKEN_URL}\n` +
         `   On that page, tick these scopes (read-only profile, covers everything except pr create):\n` +
-        `     - read:me\n` +
+        `     - read:user:bitbucket          (required for --whoami)\n` +
         `     - read:repository:bitbucket\n` +
         `     - read:pullrequest:bitbucket\n` +
         `     - read:pipeline:bitbucket\n` +
-        `   Add write:pullrequest:bitbucket if you also want \`bb pr create\`.\n\n` +
+        `   Add write:pullrequest:bitbucket if you also want \`bb pr create\` / \`pr comment add\` / \`pr comment edit\`.\n\n` +
         `2. Save it at the project root:\n` +
         `   umask 077\n` +
         `   cat > .bb <<'EOF'\n` +

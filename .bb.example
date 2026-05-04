@@ -12,11 +12,11 @@ BB_USER=you@example.com
 # Required: Atlassian API token from
 #   https://id.atlassian.com/manage-profile/security/api-tokens?autofillToken=&appId=bitbucket
 # Tick these scopes on that page (read-only profile — covers everything except `bb pr create`):
-#   read:me
+#   read:user:bitbucket          # required for --whoami
 #   read:repository:bitbucket
 #   read:pullrequest:bitbucket
 #   read:pipeline:bitbucket
-# Also tick write:pullrequest:bitbucket if you want PR creation.
+# Also tick write:pullrequest:bitbucket for: pr create, pr comment add, pr comment edit.
 BB_TOKEN=replace-with-your-token
 
 # Optional: workspace override (used when git remote isn't bitbucket.org or you want a different workspace)
