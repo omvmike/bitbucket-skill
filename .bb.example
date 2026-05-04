@@ -1,0 +1,23 @@
+# Copy this to your project root as `.bb` (or to ~/.config/bitbucket/.bb)
+# and fill in real values, then: chmod 600 .bb && echo .bb >> .gitignore
+#
+#   cp ~/.claude/skills/bitbucket/.bb.example /path/to/project/.bb
+#   chmod 600 /path/to/project/.bb
+#   echo .bb >> /path/to/project/.gitignore
+
+# Required for scoped API tokens: Atlassian account email (paired with token via HTTP Basic).
+# Omit BB_USER if you're using an OAuth 2.0 / workspace / repo / project access token (Bearer auth).
+BB_USER=you@example.com
+
+# Required: Atlassian API token from
+#   https://id.atlassian.com/manage-profile/security/api-tokens?autofillToken=&appId=bitbucket
+# Tick these scopes on that page (read-only profile — covers everything except `bb pr create`):
+#   read:me
+#   read:repository:bitbucket
+#   read:pullrequest:bitbucket
+#   read:pipeline:bitbucket
+# Also tick write:pullrequest:bitbucket if you want PR creation.
+BB_TOKEN=replace-with-your-token
+
+# Optional: workspace override (used when git remote isn't bitbucket.org or you want a different workspace)
+# BB_WORKSPACE=my-workspace

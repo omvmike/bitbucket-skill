@@ -1,0 +1,6 @@
+{
+  "defaultLimit": 10,
+  "defaultFormat": "json",
+  "timeoutMs": 15000,
+  "maxRowsPerPage": 50
+}
