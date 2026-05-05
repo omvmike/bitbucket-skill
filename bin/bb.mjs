@@ -38,7 +38,9 @@ Commands:
             [--yes]                           Required when stdin is a TTY
 
   pr comments    <pr-id> [--limit N]          List PR comments (newest first)
-  pr comment add  <pr-id> --body <text>|@file [--yes]
+  pr comment add  <pr-id> --body <text>|@file
+                  [--file <path> --line <n> [--side OLD|NEW] [--start-line <n>]]
+                  [--yes]
   pr comment edit <pr-id> <comment-id> --body <text>|@file [--yes]
 
   pipeline list  [--branch <name>] [--status pending|in_progress|successful|failed|stopped]
@@ -119,6 +121,41 @@ function bodyFromFlag(raw) {
     return readFileSync(raw.slice(1), 'utf8');
   }
   return raw;
+}
+
+function buildInlineFromFlags(flags) {
+  const path = flags.file;
+  const lineRaw = flags.line;
+  const sideRaw = flags.side;
+  const startRaw = flags['start-line'];
+  if (path == null && lineRaw == null && sideRaw == null && startRaw == null) {
+    return undefined;
+  }
+  if (path == null) die('--file is required when using inline flags', EXIT.VALIDATION);
+  if (lineRaw == null) die('--line is required when --file is set', EXIT.VALIDATION);
+  const intRe = /^[1-9]\d*$/;
+  if (!intRe.test(lineRaw)) {
+    die(`--line must be a positive integer, got: ${lineRaw}`, EXIT.VALIDATION);
+  }
+  const line = Number.parseInt(lineRaw, 10);
+  let start;
+  if (startRaw != null) {
+    if (!intRe.test(startRaw)) {
+      die(`--start-line must be a positive integer, got: ${startRaw}`, EXIT.VALIDATION);
+    }
+    start = Number.parseInt(startRaw, 10);
+    if (start > line) {
+      die(`--start-line (${start}) must be <= --line (${line})`, EXIT.VALIDATION);
+    }
+  }
+  const side = (sideRaw ?? 'NEW').toUpperCase();
+  if (side !== 'NEW' && side !== 'OLD') {
+    die(`--side must be NEW or OLD (got: ${sideRaw})`, EXIT.VALIDATION);
+  }
+  if (side === 'NEW') {
+    return start != null ? { path, to: line, start_to: start } : { path, to: line };
+  }
+  return start != null ? { path, from: line, start_from: start } : { path, from: line };
 }
 
 const TOKEN_URL =
@@ -278,9 +315,11 @@ async function cmdPrCommentAdd(client, target, prId, flags) {
   if (!prId) die('pr comment add requires <pr-id>');
   const raw = bodyFromFlag(flags.body);
   if (!raw) die('pr comment add requires --body <text>|@file');
+  const inline = buildInlineFromFlags(flags);
+  const body = inline ? { content: { raw }, inline } : { content: { raw } };
   const created = await client.post(
     `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments`,
-    { content: { raw } },
+    body,
   );
   return formatCommentDetail(created, { format: flags.format ?? CONFIG.defaultFormat });
 }
@@ -291,6 +330,12 @@ async function cmdPrCommentEdit(client, target, prId, commentId, flags) {
   }
   if (!prId) die('pr comment edit requires <pr-id>');
   if (!commentId) die('pr comment edit requires <comment-id>');
+  if (flags.file != null || flags.line != null || flags.side != null || flags['start-line'] != null) {
+    die(
+      'pr comment edit cannot change a comment anchor — Bitbucket does not allow it. Delete and re-create instead.',
+      EXIT.VALIDATION,
+    );
+  }
   const raw = bodyFromFlag(flags.body);
   if (!raw) die('pr comment edit requires --body <text>|@file');
   const updated = await client.put(
