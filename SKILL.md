@@ -78,7 +78,9 @@ PRs:
             [--yes]                       Required when stdin is a TTY
 
   pr comments    <pr-id> [--limit N]    List PR comments (newest first)
-  pr comment add  <pr-id> --body <text>|@file [--yes]
+  pr comment add  <pr-id> --body <text>|@file
+                  [--file <path> --line <n> [--side OLD|NEW] [--start-line <n>]]
+                  [--yes]
   pr comment edit <pr-id> <comment-id> --body <text>|@file [--yes]
 
 Pipelines:
@@ -92,6 +94,25 @@ Global flags:
   --format json|table                      Default: json (diff/log always raw text)
   --limit N                                Default: 10
   --timeout MS                             Default: 15000
+```
+
+## Inline comments
+
+`bb pr comment add` can anchor a comment to a file:line in the PR diff.
+
+- `--file <path>` — repo-relative path of the file in the diff. Required for inline.
+- `--line <n>` — line number on the chosen side. Required when `--file` is set.
+- `--side OLD|NEW` — defaults to `NEW` (post-change line). Use `OLD` to anchor to a deleted line.
+- `--start-line <n>` — optional; sets the start of a multi-line range (must be ≤ `--line`).
+
+Bitbucket does not allow changing a comment's anchor after creation, so `pr comment edit` rejects all inline flags. To reposition a comment, delete it in the UI and re-create.
+
+Example:
+
+```sh
+bb pr comment add 2983 \
+  --body @comment.md \
+  --file src/foo.ts --line 250 --yes
 ```
 
 ## Exit codes
