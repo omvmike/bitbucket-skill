@@ -1,6 +1,6 @@
 # bitbucket-skill
 
-Read-only Bitbucket Cloud access (with one opt-in write) as an Agent Skill. One codebase, works in **Claude Code** and **Codex CLI**.
+Read-only Bitbucket Cloud access (with one opt-in write) as an Agent Skill. One codebase, works in **Claude Code** and **Codex CLI** and **PI**.
 
 Thin Node wrapper over the Bitbucket Cloud v2 REST API. Replaces ad-hoc `curl` calls and keeps the API token out of shell history. Auto-detects workspace/slug from `git remote`.
 
@@ -43,6 +43,14 @@ git clone https://github.com/omvmike/bitbucket-skill .agents/skills/bitbucket
 ```
 
 Invoke with `$bitbucket` or let Codex trigger it automatically.
+
+### PI
+```bash
+# personal (available in every project)
+git clone https://github.com/omvmike/bitbucket-skill ~/.pi/agent/skills/bitbucket
+```
+Project-scoped variant isn't tested but should work as well.
+Invoke with `/skill:bitbucket` or let Pi trigger it automatically
 
 ### Update
 
