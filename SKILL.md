@@ -1,6 +1,6 @@
 ---
 name: bitbucket
-description: Use when the user asks Claude to list, inspect, or create Bitbucket Cloud pull requests, or to check pipeline status and logs, in the project's Bitbucket repository. Triggers on phrases like "list PRs", "show open pull requests", "latest PRs", "pipeline status", "why did the pipeline fail", "create a PR from this branch", "open PR". Auto-detects workspace/repo from the git remote; reads BB_TOKEN from a local .bb file.
+description: Use when the user asks Agent to list, inspect, or create Bitbucket Cloud pull requests, or to check pipeline status and logs, in the project's Bitbucket repository. Triggers on phrases like "list PRs", "show open pull requests", "latest PRs", "pipeline status", "why did the pipeline fail", "create a PR from this branch", "open PR". Auto-detects workspace/repo from the git remote; reads BB_TOKEN from a local .bb file.
 allow_implicit_invocation: true
 allowed-tools: Bash(node *), Read
 ---
@@ -50,10 +50,10 @@ If `bb --whoami` returns exit code 2 with "no .bb file found", guide the user:
 
 Never invent a token. Never write a token into a tracked file.
 
-## Step order Claude must follow
+## Step order Agent must follow
 
 1. Run `bb --whoami` first to confirm auth and print the detected `workspace/slug`. If the user is on an unexpected workspace, stop and confirm with them.
-2. Default output is `--format json` (slimmed to relevant fields) so Claude can reason over results. When surfacing results directly to the user, pass `--format table` to render a markdown pipe-table, or reformat the JSON yourself if the user asked for a specific view.
+2. Default output is `--format json` (slimmed to relevant fields) so Agent can reason over results. When surfacing results directly to the user, pass `--format table` to render a markdown pipe-table, or reformat the JSON yourself if the user asked for a specific view.
 3. **Before `bb pr create`**, restate `source → target`, the title, and a one-line summary of the body to the user, then wait for explicit confirmation. Never invent reviewer usernames — either ask the user or omit `--reviewer`.
 4. **Before `bb pr comment add` / `bb pr comment edit`**, restate the PR id (and the comment id for `edit`) and show the comment body to the user, then wait for explicit confirmation. Never invent comment text the user didn't ask for. `pr comment edit` overwrites — fetch the existing body first via `pr comments` if you need to amend rather than replace.
 5. Pipeline logs can be long. Prefer `bb pipeline steps <uuid>` first to pick the right step before fetching `bb pipeline log`.
