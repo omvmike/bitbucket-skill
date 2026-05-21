@@ -8,7 +8,7 @@ Thin Node wrapper over the Bitbucket Cloud v2 REST API. Replaces ad-hoc `curl` c
 
 - Single Node CLI: `bin/bb.mjs`
 - Pull requests: `pr list`, `pr get`, `pr diff`, `pr activity`, `pr create`
-- PR comments: `pr comments` (list), `pr comment add`, `pr comment edit`
+- PR comments: `pr comments` (list), `pr comment add` (with `--parent` for threaded replies), `pr comment edit`, `pr comment resolve`, `pr comment unresolve`
 - Pipelines: `pipeline list`, `pipeline get`, `pipeline steps`, `pipeline log`
 - Auto-detects `<workspace>/<slug>` from `git remote get-url origin`
 - Basic auth (scoped Atlassian API token + email) and Bearer auth (OAuth / workspace / repo / project access tokens) via the same `.bb` file
@@ -127,6 +127,13 @@ node ~/.claude/skills/bitbucket/bin/bb.mjs pr comment add 42 --body '@review-not
 # Edit an existing comment (overwrites the body)
 node ~/.claude/skills/bitbucket/bin/bb.mjs pr comment edit 42 12345 --body 'Updated review notes' --yes
 
+# Threaded reply to an existing comment (anchor is inherited)
+node ~/.claude/skills/bitbucket/bin/bb.mjs pr comment add 42 --parent 12345 --body 'Verified — resolving.' --yes
+
+# Resolve / reopen a thread (top-level comment id)
+node ~/.claude/skills/bitbucket/bin/bb.mjs pr comment resolve   42 12345 --yes
+node ~/.claude/skills/bitbucket/bin/bb.mjs pr comment unresolve 42 12345 --yes
+
 # Pipelines for master
 node ~/.claude/skills/bitbucket/bin/bb.mjs pipeline list --branch master --limit 5
 
@@ -193,11 +200,11 @@ The skill requests the minimum scopes needed for each operation. Generated token
 | `read:pullrequest:bitbucket` | `pr list`, `pr get`, `pr diff`, `pr activity`, `pr comments` |
 | `read:pipeline:bitbucket` | `pipeline list`, `pipeline get`, `pipeline steps`, `pipeline log` |
 
-**Write profile (adds 1 scope, total 5)** — required for `pr create` and `pr comment add` / `pr comment edit`:
+**Write profile (adds 1 scope, total 5)** — required for `pr create`, `pr comment add` / `pr comment edit`, and `pr comment resolve` / `pr comment unresolve`:
 
 | Scope | Justification |
 |---|---|
-| `write:pullrequest:bitbucket` | `POST /pullrequests` (`pr create`), `POST /pullrequests/{id}/comments` (`pr comment add`), `PUT /pullrequests/{id}/comments/{cid}` (`pr comment edit`) |
+| `write:pullrequest:bitbucket` | `POST /pullrequests` (`pr create`), `POST /pullrequests/{id}/comments` (`pr comment add`, including threaded replies via `parent.id`), `PUT /pullrequests/{id}/comments/{cid}` (`pr comment edit`), `POST /pullrequests/{id}/comments/{cid}/resolve` (`pr comment resolve`), `DELETE /pullrequests/{id}/comments/{cid}/resolve` (`pr comment unresolve`) |
 
 **Explicitly NOT needed.** Compared to the older `selectedScopes=all` link, this drops 35 scopes:
 
