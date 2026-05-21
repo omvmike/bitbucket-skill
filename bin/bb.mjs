@@ -40,8 +40,11 @@ Commands:
   pr comments    <pr-id> [--limit N]          List PR comments (newest first)
   pr comment add  <pr-id> --body <text>|@file
                   [--file <path> --line <n> [--side OLD|NEW] [--start-line <n>]]
+                  [--parent <comment-id>]              Reply to an existing comment
                   [--yes]
   pr comment edit <pr-id> <comment-id> --body <text>|@file [--yes]
+  pr comment resolve   <pr-id> <comment-id> [--yes]    Resolve a thread
+  pr comment unresolve <pr-id> <comment-id> [--yes]    Reopen a resolved thread
 
   pipeline list  [--branch <name>] [--status pending|in_progress|successful|failed|stopped]
                  [--limit N]
@@ -172,7 +175,7 @@ function ensureAuth(target, hints) {
         `     - read:repository:bitbucket\n` +
         `     - read:pullrequest:bitbucket\n` +
         `     - read:pipeline:bitbucket\n` +
-        `   Add write:pullrequest:bitbucket if you also want \`bb pr create\` / \`pr comment add\` / \`pr comment edit\`.\n\n` +
+        `   Add write:pullrequest:bitbucket if you also want \`bb pr create\` / \`pr comment add\` / \`pr comment edit\` / \`pr comment resolve\` / \`pr comment unresolve\`.\n\n` +
         `2. Save it at the project root:\n` +
         `   umask 077\n` +
         `   cat > .bb <<'EOF'\n` +
@@ -316,12 +319,59 @@ async function cmdPrCommentAdd(client, target, prId, flags) {
   const raw = bodyFromFlag(flags.body);
   if (!raw) die('pr comment add requires --body <text>|@file');
   const inline = buildInlineFromFlags(flags);
-  const body = inline ? { content: { raw }, inline } : { content: { raw } };
+  let parentId;
+  if (flags.parent != null) {
+    if (!/^[1-9]\d*$/.test(String(flags.parent))) {
+      die(`--parent must be a positive integer, got: ${flags.parent}`, EXIT.VALIDATION);
+    }
+    if (inline) {
+      die('--parent cannot be combined with inline flags — replies inherit the parent anchor', EXIT.VALIDATION);
+    }
+    parentId = Number.parseInt(flags.parent, 10);
+  }
+  const body = { content: { raw } };
+  if (inline) body.inline = inline;
+  if (parentId != null) body.parent = { id: parentId };
   const created = await client.post(
     `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments`,
     body,
   );
   return formatCommentDetail(created, { format: flags.format ?? CONFIG.defaultFormat });
+}
+
+async function cmdPrCommentResolve(client, target, prId, commentId, flags) {
+  if (process.stdin.isTTY && !flags.yes) {
+    die('pr comment resolve from a TTY requires --yes to confirm', EXIT.VALIDATION);
+  }
+  if (!prId) die('pr comment resolve requires <pr-id>');
+  if (!commentId) die('pr comment resolve requires <comment-id>');
+  // Bitbucket requires Content-Type: application/json on this endpoint — an empty
+  // body returns 400, so we send {} explicitly. The response is a comment_resolution
+  // object, not the comment itself, so we re-fetch to surface the full updated state.
+  await client.post(
+    `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments/${commentId}/resolve`,
+    {},
+  );
+  const fresh = await client.get(
+    `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments/${commentId}`,
+  );
+  return formatCommentDetail(fresh, { format: flags.format ?? CONFIG.defaultFormat });
+}
+
+async function cmdPrCommentUnresolve(client, target, prId, commentId, flags) {
+  if (process.stdin.isTTY && !flags.yes) {
+    die('pr comment unresolve from a TTY requires --yes to confirm', EXIT.VALIDATION);
+  }
+  if (!prId) die('pr comment unresolve requires <pr-id>');
+  if (!commentId) die('pr comment unresolve requires <comment-id>');
+  await client.delete(
+    `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments/${commentId}/resolve`,
+  );
+  // DELETE returns 204 No Content; re-fetch so we can show the cleared resolution state.
+  const fresh = await client.get(
+    `/repositories/${target.workspace}/${target.slug}/pullrequests/${prId}/comments/${commentId}`,
+  );
+  return formatCommentDetail(fresh, { format: flags.format ?? CONFIG.defaultFormat });
 }
 
 async function cmdPrCommentEdit(client, target, prId, commentId, flags) {
@@ -423,7 +473,9 @@ async function main() {
           const action = rest[0];
           if (action === 'add') output = await cmdPrCommentAdd(client, target, rest[1], flags);
           else if (action === 'edit') output = await cmdPrCommentEdit(client, target, rest[1], rest[2], flags);
-          else die(`unknown pr comment action: ${action ?? '(missing)'} — expected add|edit`);
+          else if (action === 'resolve') output = await cmdPrCommentResolve(client, target, rest[1], rest[2], flags);
+          else if (action === 'unresolve') output = await cmdPrCommentUnresolve(client, target, rest[1], rest[2], flags);
+          else die(`unknown pr comment action: ${action ?? '(missing)'} — expected add|edit|resolve|unresolve`);
         }
         else die(`unknown pr subcommand: ${sub}`);
       } else if (group === 'pipeline') {

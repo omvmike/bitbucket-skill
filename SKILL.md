@@ -14,7 +14,8 @@ Thin Node.js wrapper over the Bitbucket Cloud v2 REST API. Use it when the user 
 - Listing / inspecting pull requests (open, merged, mine, by author)
 - Fetching a PR's diff, comments, activity feed, or approvals
 - Creating a pull request from a branch
-- Reading, adding, or editing PR comments (top-level)
+- Reading, adding, editing, or replying to PR comments (top-level or threaded)
+- Resolving / reopening PR review threads
 - Checking pipeline run status / step logs / why a pipeline failed
 
 ## When NOT to use
@@ -55,8 +56,9 @@ Never invent a token. Never write a token into a tracked file.
 1. Run `bb --whoami` first to confirm auth and print the detected `workspace/slug`. If the user is on an unexpected workspace, stop and confirm with them.
 2. Default output is `--format json` (slimmed to relevant fields) so Claude can reason over results. When surfacing results directly to the user, pass `--format table` to render a markdown pipe-table, or reformat the JSON yourself if the user asked for a specific view.
 3. **Before `bb pr create`**, restate `source → target`, the title, and a one-line summary of the body to the user, then wait for explicit confirmation. Never invent reviewer usernames — either ask the user or omit `--reviewer`.
-4. **Before `bb pr comment add` / `bb pr comment edit`**, restate the PR id (and the comment id for `edit`) and show the comment body to the user, then wait for explicit confirmation. Never invent comment text the user didn't ask for. `pr comment edit` overwrites — fetch the existing body first via `pr comments` if you need to amend rather than replace.
-5. Pipeline logs can be long. Prefer `bb pipeline steps <uuid>` first to pick the right step before fetching `bb pipeline log`.
+4. **Before `bb pr comment add` / `bb pr comment edit`**, restate the PR id (and the comment id for `edit`, or the `--parent` id for a threaded reply) and show the comment body to the user, then wait for explicit confirmation. Never invent comment text the user didn't ask for. `pr comment edit` overwrites — fetch the existing body first via `pr comments` if you need to amend rather than replace.
+5. **Before `bb pr comment resolve` / `bb pr comment unresolve`**, restate the PR id and the comment id(s), and wait for explicit confirmation. Resolution state is observable to all reviewers — only resolve threads you have actually verified are addressed.
+6. Pipeline logs can be long. Prefer `bb pipeline steps <uuid>` first to pick the right step before fetching `bb pipeline log`.
 
 ## CLI reference
 
@@ -80,8 +82,11 @@ PRs:
   pr comments    <pr-id> [--limit N]    List PR comments (newest first)
   pr comment add  <pr-id> --body <text>|@file
                   [--file <path> --line <n> [--side OLD|NEW] [--start-line <n>]]
+                  [--parent <comment-id>]              Reply to an existing comment
                   [--yes]
   pr comment edit <pr-id> <comment-id> --body <text>|@file [--yes]
+  pr comment resolve   <pr-id> <comment-id> [--yes]    Resolve a thread
+  pr comment unresolve <pr-id> <comment-id> [--yes]    Reopen a resolved thread
 
 Pipelines:
   pipeline list  [--branch <name>] [--status pending|in_progress|successful|failed|stopped] [--limit N]
@@ -114,6 +119,25 @@ bb pr comment add 2983 \
   --body @comment.md \
   --file src/foo.ts --line 250 --yes
 ```
+
+## Threaded replies and thread resolution
+
+Replies inherit their parent's inline anchor — pass `--parent <comment-id>` to `pr comment add` and Bitbucket nests the new comment under the existing thread. Inline flags are rejected on replies because the anchor can't be overridden.
+
+```sh
+# Threaded reply
+bb pr comment add 2983 --parent 799110122 --body 'Verified — resolving.' --yes
+
+# Resolve / reopen a thread (operates on the *top-level* comment id of the thread)
+bb pr comment resolve   2983 799110122 --yes
+bb pr comment unresolve 2983 799110122 --yes
+```
+
+Quirks the wrapper hides:
+
+- `POST /comments/{id}/resolve` rejects an empty request body with `400 Bad Request`; the wrapper always sends `{}`.
+- Unresolve is `DELETE /comments/{id}/resolve` (returns `204 No Content`) — there is no `/reopen` or `/unresolve` endpoint.
+- After resolve/unresolve, the JSON output exposes `resolved` (boolean) and `resolution.resolved_on` / `resolution.resolved_by`.
 
 ## Exit codes
 
