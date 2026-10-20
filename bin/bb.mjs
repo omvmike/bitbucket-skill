@@ -424,7 +424,8 @@ async function cmdPipelineLog(client, target, pipelineUuid, stepUuid) {
   return client.get(
     `/repositories/${target.workspace}/${target.slug}/pipelines/${pipelineUuid}/steps/${stepUuid}/log`,
     null,
-    { accept: 'text/plain' },
+    // The log is only served as octet-stream (307 to S3); Accept: text/plain gets 406 Not Acceptable.
+    { accept: 'application/octet-stream' },
   );
 }
 
