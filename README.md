@@ -180,7 +180,7 @@ node ~/.claude/skills/bitbucket/bin/bb.mjs --list-targets
 
 The script walks up from `process.cwd()` (the directory you ran `claude` / `codex` from) and stops at the first directory containing a `.git` folder. If `.bb` isn't there, it falls back to `~/.config/bitbucket/.bb`. The resolved path is shown by `--list-targets` and `--whoami`.
 
-Workspace/slug are detected by parsing `git remote get-url origin` for SSH (`git@bitbucket.org:<workspace>/<slug>`) and HTTPS (`https://bitbucket.org/<workspace>/<slug>`) Bitbucket Cloud URLs. Override with `--repo <workspace>/<slug>` or set `BB_WORKSPACE` in `.bb`.
+Workspace/slug are detected by parsing `git remote get-url origin` for SSH (`git@ssh.bitbucket.org:<workspace>/<slug>`, the legacy `git@bitbucket.org:` host, and the `ssh://git@…/<workspace>/<slug>` form) and HTTPS (`https://bitbucket.org/<workspace>/<slug>`) Bitbucket Cloud URLs. Override with `--repo <workspace>/<slug>` or set `BB_WORKSPACE` in `.bb`.
 
 ## Auth and routing
 
